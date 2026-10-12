@@ -1,6 +1,8 @@
 from sqlalchemy import (MetaData, Table, Column, Integer, Text, ForeignKey,
                         CheckConstraint, UniqueConstraint)
 
+# Schema 0002: weight quantities/bases/steps are integer grams; counts are items.
+# All monetary columns remain integer rial. Historical schema 0001 is frozen.
 metadata = MetaData()
 
 users = Table("users", metadata,
@@ -69,7 +71,9 @@ movements = Table("stock_movements", metadata,
     CheckConstraint("quantity_after != 0 OR value_after = 0"))
 idempotency = Table("idempotency_records", metadata,
     Column("key", Text, primary_key=True), Column("payload_hash", Text, nullable=False),
-    Column("result_id", Text, ForeignKey("documents.id", ondelete="RESTRICT"), nullable=False))
+    Column("result_id", Text, ForeignKey("documents.id", ondelete="RESTRICT"), nullable=False),
+    Column("quantity_version", Integer, nullable=False, server_default="1"),
+    CheckConstraint("quantity_version IN (1,2)"))
 audit = Table("audit_events", metadata,
     Column("id", Integer, primary_key=True),
     Column("actor_id", Integer, ForeignKey("users.id", ondelete="RESTRICT"), nullable=False),

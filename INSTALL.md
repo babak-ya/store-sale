@@ -129,9 +129,10 @@ for protection against failure of the computer's disk. Do not copy just the live
 
 For source updates, create a backup, stop the app, then download the latest `main`
 ZIP into a **new** folder. Repeat installation there using the same data folder.
-Read the release/status notes first: this version supports schema `0001` only;
-future schema changes require their own tested upgrade instructions. Do not delete
-the database to work around an upgrade error.
+Read [the whole-gram upgrade guide](docs/GRAM_MIGRATION.md) first: schema `0002`
+requires exact conversion of all legacy milligram quantities and makes a verified
+backup before conversion. Fractional-gram history blocks the upgrade. Do not delete
+the database, round quantities, or stamp a schema version to bypass an error.
 
 ## 7. Troubleshooting
 

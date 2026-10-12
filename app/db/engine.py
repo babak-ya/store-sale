@@ -27,8 +27,14 @@ def make_engine(path):
     return engine
 
 
+def require_current_schema(connection):
+    if connection.exec_driver_sql("SELECT version_num FROM alembic_version").scalar() != "0002":
+        raise RuntimeError("Schema 0002 (whole grams) required; see docs/GRAM_MIGRATION.md")
+
+
 @contextmanager
 def write_transaction(engine):
     with engine.connect().execution_options(sqlite_begin="IMMEDIATE") as c:
         with c.begin():
+            require_current_schema(c)
             yield c

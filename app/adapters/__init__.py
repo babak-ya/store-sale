@@ -6,7 +6,8 @@ from typing import Protocol
 
 @dataclass(frozen=True)
 class WeightReading:
-    milligrams: int
+    # Adapters must reject fractional grams, never round device readings.
+    grams: int
     stable: bool
     timestamp: datetime
     error: str | None = None

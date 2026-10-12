@@ -26,19 +26,20 @@ def test_bad_integer(value):
 
 
 def test_quantity_precision_and_steps():
-    assert quantity("۰٫۱۲۵", kind="weight", unit="g", step=125) == 125
-    assert quantity("1.5", kind="weight", unit="kg", step=1000) == 1500000
+    assert quantity("۱", kind="weight", unit="g", step=1) == 1
+    assert quantity("1.5", kind="weight", unit="kg", step=1) == 1500
     for text, kind, unit, step in [("0.0001", "weight", "g", 1), ("1.5", "count", "count", 1),
-                                  ("0", "count", "count", 1), ("126", "weight", "mg", 125)]:
+                                  ("0", "count", "count", 1), ("126", "weight", "g", 125), ("1000", "weight", "mg", 1),
+                                  ("0.125", "weight", "g", 1), ("0.0005", "weight", "kg", 1)]:
         with pytest.raises(DomainError):
             quantity(text, kind=kind, unit=unit, step=step)
 
 
 def test_saffron_acceptance():
-    stock = Stock().receive(1000, 800000)
-    stock, cost = stock.issue(125)
-    net = line_net(1200000, 125, 1000)
-    assert (net, cost, net - cost, stock.qty, stock.value) == (150000, 100000, 50000, 875, 700000)
+    stock = Stock().receive(8, 800000)
+    stock, cost = stock.issue(1)
+    net = line_net(150000, 1, 1)
+    assert (net, cost, net - cost, stock.qty, stock.value) == (150000, 100000, 50000, 7, 700000)
 
 
 def test_rounding_and_complete_depletion():
@@ -61,23 +62,23 @@ def test_rounding_and_complete_depletion():
 
 def test_continuous_plan_stock_and_profit():
     # Stock/cost part of the plan only. AR/AP and payments are not implemented yet.
-    s = Stock().receive(1000000, 100000).receive(500000, 70000)
-    s, c1 = s.issue(600000)
-    assert (s, c1) == (Stock(900000, 102000), 68000)
-    s = s.receive(500000, 65000)
-    s, c2 = s.issue(700000)
+    s = Stock().receive(1000, 100000).receive(500, 70000)
+    s, c1 = s.issue(600)
+    assert (s, c1) == (Stock(900, 102000), 68000)
+    s = s.receive(500, 65000)
+    s, c2 = s.issue(700)
     assert c2 == 83500
-    r1 = return_share(c1, 600000, 100000, 0)
-    s = s.receive(100000, r1)
-    assert s == Stock(800000, 94833)
-    s, c3 = s.issue(300000)
-    assert (s, c3) == (Stock(500000, 59271), 35562)
-    r2 = return_share(c2, 700000, 200000, 0)
-    s = s.receive(200000, r2)
-    r3 = return_share(c1, 600000, 200000, r1)
-    s = s.receive(100000, r3)
+    r1 = return_share(c1, 600, 100, 0)
+    s = s.receive(100, r1)
+    assert s == Stock(800, 94833)
+    s, c3 = s.issue(300)
+    assert (s, c3) == (Stock(500, 59271), 35562)
+    r2 = return_share(c2, 700, 200, 0)
+    s = s.receive(200, r2)
+    r3 = return_share(c1, 600, 200, r1)
+    s = s.receive(100, r3)
     assert (r1, r2, r3) == (11333, 23857, 11334)
-    assert s == Stock(800000, 94462)
+    assert s == Stock(800, 94462)
     net_sales = 90000 + 112000 + 51000 - 15000 - 32000 - 15000
     net_cogs = c1 + c2 + c3 - r1 - r2 - r3
     assert (net_sales, net_cogs, net_sales - net_cogs) == (191000, 140538, 50462)
@@ -106,3 +107,19 @@ def test_tehran_midnight_and_jalali_leap_boundary():
     assert jalali_date(after) == "1404/01/01"
     with pytest.raises(ValueError):
         accounting_date(datetime(2025, 1, 1))
+
+
+def test_exact_kg_boundaries_and_display():
+    from app.domain.units import display_weight
+    assert quantity('0.001', kind='weight', unit='kg', step=1) == 1
+    assert quantity('۰٫۲۵۰', kind='weight', unit='kg', step=1) == 250
+    assert quantity('١٫٥', kind='weight', unit='kg', step=1) == 1500
+    assert quantity(str(MAX_INT), kind='weight', unit='g', step=1) == MAX_INT
+    assert display_weight(1, 'kg') == '0.001'
+    assert display_weight(0, 'kg') == '0.000'
+    assert display_weight(MAX_INT, 'kg') == '9223372036854775.807'
+    for text in ['0.0001', '0.2501', '0', '-1', str(MAX_INT)]:
+        with pytest.raises(DomainError):
+            quantity(text, kind='weight', unit='kg', step=1)
+    # Price per kg and price per gram represent the same exact money calculation.
+    assert line_net(1200000, 250, 1000) == line_net(1200, 250, 1) == 300000

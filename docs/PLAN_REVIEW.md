@@ -7,7 +7,7 @@ the document's implementation guidance is applied within that scope.
 ## Assessment
 
 The stack fits the single-computer offline workflow. The strongest decisions are
-integer rial/milligram storage, cumulative return rounding, historical cost snapshots,
+integer rial/whole-gram storage, cumulative return rounding, historical cost snapshots,
 atomic posting with idempotency, and the explicit distinction between manual card
 confirmation and real banking integration. Keeping money, stock and party ledgers
 separate avoids counting debt collections as income. The opening acceptance scenario
@@ -17,6 +17,15 @@ portion, not its unimplemented AR/AP/cash ledgers.
 Keep the phased delivery and the requirement that phases zero through two plus
 Windows/pilot validation are needed for shop use. The 120–200 person-hour estimate
 is a planning range, not a promise. Hardware uncertainty does not block the core.
+
+## Quantity decision — 2026-10-12
+
+The user superseded the original milligram requirement: weights use integer grams,
+with a minimum positive quantity and step of 1 gram. Fractional grams are rejected,
+not rounded. Stored price bases are 1 for a gram and 1000 for a kilogram. Forms explicitly select
+g/kg for manual quantities and price bases; inventory display also selects g/kg. The updated
+Persian plan uses whole-gram examples; schema 0001 remains frozen as historical
+evidence. See [the migration guide](GRAM_MIGRATION.md).
 
 ## Decisions made for this first slice
 

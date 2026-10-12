@@ -25,7 +25,7 @@ if sys.argv[5] == "before":
         if statement.startswith("INSERT INTO audit_events"):
             os._exit(71)
 post_stock(engine, key=sys.argv[4], actor_id=int(sys.argv[2]), kind="sale",
-           product_id=int(sys.argv[3]), qty=125, price_version=1, reason="crash-test")
+           product_id=int(sys.argv[3]), qty=1, price_version=1, reason="crash-test")
 os._exit(72)
 '''
     for mode, exit_code in [("before", 71), ("after", 72)]:
@@ -40,5 +40,5 @@ os._exit(72)
     with engine.connect() as c:
         committed = c.execute(select(m.idempotency.c.result_id).where(m.idempotency.c.key == key)).scalar_one()
     assert post_stock(engine, key=key, actor_id=manager, kind="sale", product_id=pid,
-                      qty=125, price_version=1, reason="crash-test") == committed
+                      qty=1, price_version=1, reason="crash-test") == committed
     assert_ledger(engine)
