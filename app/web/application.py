@@ -81,7 +81,9 @@ def create_app(settings: Settings | None = None):
         response = await call_next(request)
         response.headers["Content-Security-Policy"] = "default-src 'self'; script-src 'none'; style-src 'self'; img-src 'self'; frame-ancestors 'none'; form-action 'self'; base-uri 'none'; connect-src 'self'"
         response.headers["X-Content-Type-Options"] = "nosniff"
-        response.headers["Referrer-Policy"] = "no-referrer"
+        # no-referrer makes browsers send Origin: null for ordinary HTML POSTs.
+        # Preserve the local form origin without sending referrers to other sites.
+        response.headers["Referrer-Policy"] = "same-origin"
         response.headers["Cache-Control"] = "no-store"
         return response
 

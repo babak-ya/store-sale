@@ -14,10 +14,14 @@
   return rounding helpers. Initial stock form; internal sale valuation service only.
 - SQLite Backup API snapshots with schema/integrity/FK validation and SHA-256 manifest.
 - Single-process launcher; second invocation checks and uses the running app.
-- **37 tests passed**: numerical examples, two connections competing for final stock,
+- **41 tests passed**: numerical examples, two connections competing for final stock,
   duplicate commands, stale prices, transaction failure, database lock, abrupt process
   exits before/after commit, auth/role/CSRF/escaping, backup during posting, corrupt and
   unsupported snapshots, restoration to a separate copy, real HTTP launcher checks.
+- Browser form-origin correction: use `Referrer-Policy: same-origin`, so local HTML
+  POSTs keep their Origin header. Explicit null/external/wrong-port origins still fail.
+  Reproduced the original null-origin failure and verified successful account creation
+  through the login screen with headless Chromium 154 on Linux using a temporary DB.
 - `pip check` passed. Install and migrate steps run in `/workspace/store-sale`.
 
 ## Still required

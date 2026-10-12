@@ -1,4 +1,5 @@
 import re
+import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import insert, update, select
 from app.web.application import create_app
@@ -60,3 +61,21 @@ def test_cashier_denied_and_disabled_session(settings, engine):
         with write_transaction(engine) as c:
             c.execute(update(m.users).values(active=0))
         assert post(client, "/backup", token).status_code == 401
+
+
+def test_local_forms_preserve_browser_origin(settings):
+    with TestClient(create_app(settings), base_url=settings.origin) as client:
+        response = client.get("/setup")
+        assert response.headers["Referrer-Policy"] == "same-origin"
+        assert response.headers["Content-Security-Policy"].find("form-action 'self'") >= 0
+
+
+@pytest.mark.parametrize("origin", ["null", "https://evil.test", "http://127.0.0.1:9999"])
+def test_untrusted_origins_still_rejected(settings, origin):
+    with TestClient(create_app(settings), base_url=settings.origin) as client:
+        token = csrf(client, "/setup")
+        response = client.post("/setup", data=dict(csrf=token, username="manager", password="synthetic-password-only"),
+                               headers={"Origin": origin})
+        assert response.status_code == 403
+        with client.app.state.engine.connect() as c:
+            assert c.execute(select(m.users.c.id)).first() is None
