@@ -1,0 +1,9 @@
+{% extends "base.html" %}{% block content %}
+<section class="card narrow"><h1>{{ 'ساخت حساب مدیر' if setup else 'ورود' }}</h1>
+{% if setup %}<p>حساب پیش‌فرض وجود ندارد. گذرواژه شخصی با حداقل ۱۲ نویسه بسازید.</p>{% endif %}
+<form method="post" action="{{ '/setup' if setup else '/login' }}">
+<input type="hidden" name="csrf" value="{{ csrf }}">
+<label>نام کاربری<input name="username" required minlength="3" maxlength="50" autocomplete="username" dir="auto"></label>
+<label>گذرواژه<input type="password" name="password" required {% if setup %}minlength="12"{% endif %} maxlength="128" autocomplete="{{ 'new-password' if setup else 'current-password' }}"></label>
+<button>{{ 'ساخت حساب' if setup else 'ورود' }}</button></form></section>
+{% endblock %}

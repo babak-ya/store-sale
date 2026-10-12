@@ -1,0 +1,23 @@
+{% extends "base.html" %}{% block content %}
+<div class="bar"><h1>شروع کار، {{ user.username }}</h1><form action="/logout" method="post"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="secondary">خروج</button></form></div>
+{% if user.role == 'manager' %}
+<section class="card"><h2>موجودی آزمایشی</h2>
+<table><thead><tr><th>کد</th><th>کالا</th><th>مقدار پایه</th><th>ارزش (تومان)</th></tr></thead>
+<tbody>{% for p in products %}<tr><td dir="auto">{{ p.sku }}</td><td>{{ p.name }}</td><td>{{ p.qty_base }} {{ 'میلی‌گرم' if p.kind == 'weight' else 'عدد' }}</td><td>{{ p.value_rial|toman }}</td></tr>{% else %}<tr><td colspan="4">هنوز کالایی تعریف نشده است.</td></tr>{% endfor %}</tbody></table></section>
+<div class="grid"><section class="card"><h2>تعریف کالای آزمایشی</h2>
+<form action="/products" method="post"><input type="hidden" name="csrf" value="{{ csrf }}">
+<label>کد کالا<input name="sku" required maxlength="50"></label><label>نام کالا<input name="name" required maxlength="100"></label>
+<label>نوع<select name="kind"><option value="count">تعدادی (عدد)</option><option value="weight">وزنی (میلی‌گرم)</option></select></label>
+<label>گام فروش در واحد پایه<input name="step" value="1" required inputmode="numeric"></label>
+<label>قیمت فروش (تومان)<input name="price" required inputmode="decimal"></label>
+<label>مبنای قیمت در واحد پایه<input name="basis" value="1" required inputmode="numeric"></label>
+<p class="hint">برای قیمت هر کیلو، مبنا ۱۰۰۰۰۰۰ میلی‌گرم؛ برای هر گرم، ۱۰۰۰ میلی‌گرم.</p><button>تعریف کالا</button></form></section>
+<section class="card"><h2>ثبت موجودی افتتاحیه آزمایشی</h2><p>فقط یک بار و پیش از گردش کالا. مقدار در واحد پایه؛ ارزش کل به تومان.</p>
+<form action="/opening" method="post"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="key" value="{{ command_key }}">
+<label>کالا<select name="product_id" required>{% for p in products %}<option value="{{ p.id }}">{{ p.name }} ({{ 'میلی‌گرم' if p.kind == 'weight' else 'عدد' }})</option>{% endfor %}</select></label>
+<label>مقدار پایه<input name="qty" required inputmode="numeric"></label><label>ارزش کل (تومان)<input name="value" required inputmode="decimal"></label>
+<label>علت<input name="reason" required maxlength="500"></label><button>ثبت افتتاحیه</button></form></section></div>
+<section class="card"><h2>داده و پشتیبان</h2><p>پوشه داده: <bdi>{{ data_dir }}</bdi></p><p>پشتیبان روی همان دیسک است. بازیابی عملیاتی هنوز فعال نیست؛ نگهداری روی دیسک خارجی لازم خواهد بود.</p>
+<form action="/backup" method="post"><input type="hidden" name="csrf" value="{{ csrf }}"><button>ساخت پشتیبان بررسی‌شده</button></form></section>
+{% else %}<section class="card"><p>رابط فروش صندوقدار هنوز پیاده‌سازی نشده است.</p></section>{% endif %}
+{% endblock %}
