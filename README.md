@@ -1,6 +1,8 @@
 # StoreSale
 
 Offline Persian grocery/spice store software. **Phase-zero prototype: synthetic data only.**
+First-time users: follow [the installation guide](INSTALL.md) or
+[راهنمای نصب فارسی](INSTALL_FA.md).
 Reviewed specification: [Bobzie's plan](docs/PLAN_FA.txt). See [review](docs/PLAN_REVIEW.md),
 [status](STATUS.md), and [Persian operating instructions](README_FA.md).
 
