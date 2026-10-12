@@ -1,5 +1,11 @@
 # Whole-gram migration (0001 → 0002)
 
+Current head is schema **0003**. This document describes the preserved 0001→0002
+conversion; see [commerce upgrade notes](COMMERCE.md) for the additional 0003 step.
+Windows synthetic upgrade/backup and browser tests now pass; physical devices and
+production migration remain untested. Statements below about schema 0002 describe
+the original gram-only release; the current app and ordinary backups require 0003.
+
 The 2026-10-12 user decision replaces milligrams with **integer grams**, minimum
 positive quantity and step **1 g**. A kilogram is 1000 g; price basis is 1 for a gram
 and 1000 for a kilogram. Counts remain integers. Money remains integer rial;

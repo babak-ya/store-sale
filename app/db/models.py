@@ -45,7 +45,7 @@ documents = Table("documents", metadata,
     Column("created_at", Text, nullable=False), Column("posted_at", Text, nullable=False),
     Column("actor_id", Integer, ForeignKey("users.id", ondelete="RESTRICT"), nullable=False),
     Column("net_rial", Integer, nullable=False), Column("reason", Text, nullable=False),
-    CheckConstraint("kind IN ('opening','sale')"), CheckConstraint("status = 'posted'"),
+    CheckConstraint("kind IN ('opening','sale','purchase','supplier_payment')"), CheckConstraint("status = 'posted'"),
     CheckConstraint("typeof(net_rial) = 'integer' AND net_rial >= 0"))
 lines = Table("document_lines", metadata,
     Column("id", Text, primary_key=True),
@@ -79,3 +79,44 @@ audit = Table("audit_events", metadata,
     Column("actor_id", Integer, ForeignKey("users.id", ondelete="RESTRICT"), nullable=False),
     Column("action", Text, nullable=False), Column("reference", Text, nullable=False),
     Column("reason", Text, nullable=False), Column("created_at", Text, nullable=False))
+
+# Minimal commerce ledgers. Posted records are protected by database triggers.
+suppliers = Table("suppliers", metadata,
+    Column("id", Integer, primary_key=True), Column("name", Text, nullable=False, unique=True),
+    Column("phone", Text, nullable=False), Column("created_by", Integer, ForeignKey("users.id"), nullable=False))
+purchases = Table("purchases", metadata,
+    Column("document_id", Text, ForeignKey("documents.id"), primary_key=True),
+    Column("supplier_id", Integer, ForeignKey("suppliers.id"), nullable=False, index=True),
+    Column("supplier_name", Text, nullable=False))
+payments = Table("payments", metadata,
+    Column("id", Text, primary_key=True),
+    Column("document_id", Text, ForeignKey("documents.id"), nullable=False, unique=True),
+    Column("purchase_id", Text, ForeignKey("purchases.document_id"), nullable=True, index=True),
+    Column("direction", Text, nullable=False), Column("method", Text, nullable=False),
+    Column("amount_rial", Integer, nullable=False), Column("tendered_rial", Integer, nullable=False),
+    Column("change_rial", Integer, nullable=False), Column("status", Text, nullable=False),
+    Column("created_at", Text, nullable=False),
+    CheckConstraint("direction IN ('in','out')"),
+    CheckConstraint("method IN ('cash','manual_card','external_transfer')"),
+    CheckConstraint("status IN ('confirmed_cash','confirmed_manual')"),
+    CheckConstraint("typeof(amount_rial)='integer' AND amount_rial>0"),
+    CheckConstraint("typeof(tendered_rial)='integer' AND tendered_rial>=amount_rial"),
+    CheckConstraint("typeof(change_rial)='integer' AND change_rial=tendered_rial-amount_rial"))
+payables = Table("supplier_entries", metadata,
+    Column("id", Integer, primary_key=True),
+    Column("supplier_id", Integer, ForeignKey("suppliers.id"), nullable=False, index=True),
+    Column("purchase_id", Text, ForeignKey("purchases.document_id"), nullable=False, index=True),
+    Column("document_id", Text, ForeignKey("documents.id"), nullable=False),
+    Column("event", Text, nullable=False), Column("amount_rial", Integer, nullable=False),
+    UniqueConstraint("document_id", "event"),
+    CheckConstraint("event IN ('purchase','payment')"),
+    CheckConstraint("typeof(amount_rial)='integer' AND ((event='purchase' AND amount_rial>0) OR (event='payment' AND amount_rial<0))"))
+counters = Table("document_counters", metadata,
+    Column("kind", Text, primary_key=True), Column("value", Integer, nullable=False),
+    CheckConstraint("typeof(value)='integer' AND value>0"))
+carts = Table("carts", metadata,
+    Column("id", Text, primary_key=True), Column("actor_id", Integer, ForeignKey("users.id"), nullable=False),
+    Column("kind", Text, nullable=False), Column("version", Integer, nullable=False),
+    Column("items_json", Text, nullable=False),
+    Column("posted_id", Text, ForeignKey("documents.id"), nullable=True),
+    CheckConstraint("kind IN ('sale','purchase')"))

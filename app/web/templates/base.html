@@ -3,6 +3,7 @@
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>فروشگاه — نمونه اولیه</title><link rel="stylesheet" href="/static/style.css"></head>
 <body><header><a href="/">فروشگاه مواد غذایی و ادویه</a><span>{{ today }}</span></header>
-<main><p class="notice">نمونه اولیه فاز صفر — فقط داده ساختگی؛ برای فروش واقعی آماده نیست.</p>
+<main><p class="notice">نسخه آزمایشی فروش و خرید — فقط داده ساختگی؛ آماده‌سازی فروشگاه هنوز کامل نشده است.</p>
+<nav class="no-print"><a href="/">خانه</a> · <a href="/checkout">صندوق</a> · <a href="/sales">سوابق فروش</a>{% if user and user.role == "manager" %} · <a href="/suppliers">خرید و تأمین‌کنندگان</a>{% endif %}</nav>
 {% block content %}{% endblock %}</main>
 <footer>اجرای محلی و آفلاین · واحد پول نمایش: تومان (هر تومان = ۱۰ ریال)</footer></body></html>

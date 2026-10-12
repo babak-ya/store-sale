@@ -1,6 +1,7 @@
-"""Phase-zero posting engine. Sales are valuation test commands, not a POS API.
+"""Opening inventory and legacy internal valuation commands.
 
-Payment/party ledgers and sale routes must be added before actual sales are enabled.
+All cashier checkouts use commerce.post_sale with atomic payment recording.
+Legacy valuation commands remain only for compatibility and accounting fixtures.
 """
 import hashlib
 import json
