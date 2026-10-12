@@ -1,4 +1,4 @@
-"""Exact rial/milligram arithmetic. No floats enter the domain."""
+"""Exact rial/whole-gram arithmetic. No floats enter the domain."""
 import re
 from decimal import Decimal, ROUND_HALF_UP, localcontext
 
@@ -47,8 +47,8 @@ def rial_to_toman(value: int) -> str:
 def quantity(value: str, *, kind: str, unit: str, step: int) -> int:
     integer(step, minimum=1)
     d = decimal_text(value)
-    factors = {("weight", "g"): 1000, ("weight", "kg"): 1000000,
-               ("weight", "mg"): 1, ("count", "count"): 1}
+    factors = {("weight", "g"): 1, ("weight", "kg"): 1000,
+               ("count", "count"): 1}
     try:
         factor = factors[(kind, unit)]
     except KeyError:
@@ -62,6 +62,17 @@ def quantity(value: str, *, kind: str, unit: str, step: int) -> int:
     if q % step:
         raise DomainError("مقدار باید مضرب گام فروش باشد")
     return q
+
+
+def display_weight(grams: int, unit: str) -> str:
+    """Exact display without binary floats; zero stock is valid."""
+    integer(grams)
+    if unit == "g":
+        return str(grams)
+    if unit != "kg":
+        raise DomainError("واحد نامعتبر است")
+    whole, fraction = divmod(grams, 1000)
+    return f"{whole}.{fraction:03d}"
 
 
 def ratio_round(total: int, part: int, basis: int) -> int:

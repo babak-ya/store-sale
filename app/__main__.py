@@ -7,7 +7,6 @@ import webbrowser
 import uvicorn
 from app.config import Settings
 from app.db.migrate import upgrade
-from app.services.backup import create_backup
 from app.web.application import create_app
 
 
@@ -36,13 +35,7 @@ def main():
         return
     try:
         sock.listen(128)
-        # A schema upgrade must preserve a snapshot of an existing database first.
-        if settings.db_path.exists():
-            import sqlite3
-            with sqlite3.connect(settings.db_path) as c:
-                row = c.execute("SELECT version_num FROM alembic_version").fetchone()
-            if not row or row[0] != "0001":
-                create_backup(settings.db_path, settings.data_dir / "backups")
+        # Alembic handles verified pre-upgrade snapshots for both CLI and launcher.
         upgrade()
         app = create_app(settings)
         config = uvicorn.Config(app, host="127.0.0.1", port=settings.port, workers=1,

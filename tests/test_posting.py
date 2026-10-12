@@ -12,15 +12,15 @@ from app.services.posting import post_stock, Conflict
 
 def product(engine, manager):
     return create_product(engine, actor_id=manager, sku="0001", name="زعفران آزمایشی",
-                          kind="weight", step=125, price=1200000, basis=1000)
+                          kind="weight", step=1, price=150000, basis=1)
 
 
 def opening(engine, manager, pid, **kw):
     return post_stock(engine, key=kw.pop("key", uuid4().hex), actor_id=manager,
-                      kind="opening", product_id=pid, qty=1000, value=800000, reason="synthetic", **kw)
+                      kind="opening", product_id=pid, qty=8, value=800000, reason="synthetic", **kw)
 
 
-def sale(engine, manager, pid, qty=125, **kw):
+def sale(engine, manager, pid, qty=1, **kw):
     return post_stock(engine, key=kw.pop("key", uuid4().hex), actor_id=manager,
                       kind="sale", product_id=pid, qty=qty, price_version=kw.pop("price_version", 1),
                       reason="synthetic valuation test", **kw)
@@ -62,7 +62,7 @@ def test_two_connections_last_stock(engine, manager):
     opening(engine, manager, pid)
     def run(_):
         try:
-            return sale(engine, manager, pid, qty=1000)
+            return sale(engine, manager, pid, qty=8)
         except DomainError:
             return "insufficient"
     with ThreadPoolExecutor(max_workers=2) as pool:
@@ -88,7 +88,7 @@ def test_price_conflict_and_immutable_history(engine, manager):
     pid = product(engine, manager)
     opening(engine, manager, pid)
     with write_transaction(engine) as c:
-        c.execute(insert(m.prices).values(product_id=pid, unit_price_rial=1300000, basis_qty=1000,
+        c.execute(insert(m.prices).values(product_id=pid, unit_price_rial=1300000, basis_qty=8,
                    version=2, changed_at="2026-01-01T00:00:00+00:00", changed_by=manager))
     with pytest.raises(Conflict):
         sale(engine, manager, pid)

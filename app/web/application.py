@@ -10,10 +10,10 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError, OperationalError
 from app.config import Settings
-from app.db.engine import make_engine
+from app.db.engine import make_engine, require_current_schema
 from app.db import models as m
 from app.domain.clock import now_utc, jalali_date
-from app.domain.units import DomainError, integer, decimal_text, toman_to_rial, rial_to_toman
+from app.domain.units import DomainError, integer, decimal_text, toman_to_rial, rial_to_toman, quantity, display_weight
 from app.services import auth
 from app.services.catalog import create_product
 from app.services.posting import post_stock, Conflict
@@ -26,6 +26,12 @@ def create_app(settings: Settings | None = None):
     settings = settings or Settings.from_env()
     settings.prepare()
     engine = make_engine(settings.db_path)
+    try:
+        with engine.connect() as c:
+            require_current_schema(c)
+    except BaseException:
+        engine.dispose()
+        raise
 
     @asynccontextmanager
     async def lifespan(app):
@@ -37,6 +43,7 @@ def create_app(settings: Settings | None = None):
     app.mount("/static", StaticFiles(directory=ROOT / "static"), name="static")
     templates = Jinja2Templates(directory=ROOT / "templates")
     templates.env.filters["toman"] = rial_to_toman
+    templates.env.filters["weight"] = display_weight
     failed_logins = deque()
 
     def user(request, *, manager=False):
@@ -165,24 +172,37 @@ def create_app(settings: Settings | None = None):
         with engine.connect() as c:
             rows = c.execute(select(m.products, m.balances.c.qty_base, m.balances.c.value_rial)
                              .join(m.balances)).mappings().all() if found["role"] == "manager" else []
-        return page(request, "home.html", user=found, products=rows, data_dir=str(settings.data_dir),
+        weight_unit = request.query_params.get("weight_unit", "g")
+        if weight_unit not in {"g", "kg"}:
+            raise DomainError("واحد نامعتبر است")
+        return page(request, "home.html", user=found, products=rows, weight_unit=weight_unit, data_dir=str(settings.data_dir),
                     command_key=secrets.token_urlsafe(24))
 
     @app.post("/products")
     async def product(request: Request):
         found = user(request, manager=True)
         data = await form(request)
+        kind = str(data.get("kind", ""))
+        basis = quantity(str(data.get("basis", "")), kind=kind,
+                         unit=str(data.get("basis_unit", "")), step=1)
         create_product(engine, actor_id=found["id"], sku=str(data.get("sku", "")), name=str(data.get("name", "")),
-                       kind=str(data.get("kind", "")), step=number(str(data.get("step", ""))),
-                       price=toman_to_rial(str(data.get("price", ""))), basis=number(str(data.get("basis", ""))))
+                       kind=kind, step=number(str(data.get("step", ""))),
+                       price=toman_to_rial(str(data.get("price", ""))), basis=basis)
         return RedirectResponse("/", status_code=303)
 
     @app.post("/opening")
     async def opening(request: Request):
         found = user(request, manager=True)
         data = await form(request)
+        product_id = number(str(data.get("product_id", "")))
+        with engine.connect() as c:
+            product = c.execute(select(m.products).where(m.products.c.id == product_id)).mappings().first()
+        if not product:
+            raise DomainError("کالا یافت نشد")
+        qty = quantity(str(data.get("qty", "")), kind=product["kind"],
+                       unit=str(data.get("qty_unit", "")), step=product["quantity_step"])
         post_stock(engine, key=str(data.get("key", "")), actor_id=found["id"], kind="opening",
-                   product_id=number(str(data.get("product_id", ""))), qty=number(str(data.get("qty", ""))),
+                   product_id=product_id, qty=qty,
                    value=toman_to_rial(str(data.get("value", ""))), reason=str(data.get("reason", "")))
         return RedirectResponse("/", status_code=303)
 

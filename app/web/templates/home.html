@@ -2,20 +2,24 @@
 <div class="bar"><h1>شروع کار، {{ user.username }}</h1><form action="/logout" method="post"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="secondary">خروج</button></form></div>
 {% if user.role == 'manager' %}
 <section class="card"><h2>موجودی آزمایشی</h2>
-<table><thead><tr><th>کد</th><th>کالا</th><th>مقدار پایه</th><th>ارزش (تومان)</th></tr></thead>
-<tbody>{% for p in products %}<tr><td dir="auto">{{ p.sku }}</td><td>{{ p.name }}</td><td>{{ p.qty_base }} {{ 'میلی‌گرم' if p.kind == 'weight' else 'عدد' }}</td><td>{{ p.value_rial|toman }}</td></tr>{% else %}<tr><td colspan="4">هنوز کالایی تعریف نشده است.</td></tr>{% endfor %}</tbody></table></section>
+<form action="/" method="get"><label>واحد نمایش وزن<select name="weight_unit"><option value="g" {{ 'selected' if weight_unit == 'g' else '' }}>گرم (g)</option><option value="kg" {{ 'selected' if weight_unit == 'kg' else '' }}>کیلوگرم (kg)</option></select></label><button class="secondary">نمایش</button></form>
+<table><thead><tr><th>کد</th><th>کالا</th><th>موجودی و واحد</th><th>ارزش (تومان)</th></tr></thead>
+<tbody>{% for p in products %}<tr><td dir="auto">{{ p.sku }}</td><td>{{ p.name }}</td><td>{% if p.kind == 'weight' %}{{ p.qty_base|weight(weight_unit) }} {{ 'کیلوگرم (kg)' if weight_unit == 'kg' else 'گرم (g)' }}{% else %}{{ p.qty_base }} عدد{% endif %}</td><td>{{ p.value_rial|toman }}</td></tr>{% else %}<tr><td colspan="4">هنوز کالایی تعریف نشده است.</td></tr>{% endfor %}</tbody></table></section>
 <div class="grid"><section class="card"><h2>تعریف کالای آزمایشی</h2>
 <form action="/products" method="post"><input type="hidden" name="csrf" value="{{ csrf }}">
 <label>کد کالا<input name="sku" required maxlength="50"></label><label>نام کالا<input name="name" required maxlength="100"></label>
-<label>نوع<select name="kind"><option value="count">تعدادی (عدد)</option><option value="weight">وزنی (میلی‌گرم)</option></select></label>
-<label>گام فروش در واحد پایه<input name="step" value="1" required inputmode="numeric"></label>
-<label>قیمت فروش (تومان)<input name="price" required inputmode="decimal"></label>
-<label>مبنای قیمت در واحد پایه<input name="basis" value="1" required inputmode="numeric"></label>
-<p class="hint">برای قیمت هر کیلو، مبنا ۱۰۰۰۰۰۰ میلی‌گرم؛ برای هر گرم، ۱۰۰۰ میلی‌گرم.</p><button>تعریف کالا</button></form></section>
-<section class="card"><h2>ثبت موجودی افتتاحیه آزمایشی</h2><p>فقط یک بار و پیش از گردش کالا. مقدار در واحد پایه؛ ارزش کل به تومان.</p>
+<label>نوع<select name="kind"><option value="count">تعدادی (عدد)</option><option value="weight">وزنی (گرم)</option></select></label>
+<label>گام فروش صحیح (گرم برای وزنی؛ عدد برای تعدادی؛ حداقل ۱)<input name="step" value="1" required inputmode="numeric"></label>
+<label>قیمت فروش برای مقدار و واحد مبنای زیر (تومان)<input name="price" required inputmode="decimal"></label>
+<label>مقدار مبنای قیمت<input name="basis" value="1" required inputmode="decimal"></label>
+<label>واحد مبنای قیمت<select name="basis_unit" required><option value="count">عدد — کالای تعدادی</option><option value="g">گرم (g) — کالای وزنی</option><option value="kg">کیلوگرم (kg) — کالای وزنی</option></select></label>
+<p class="hint">قیمت هر کیلو: مقدار مبنا ۱ و واحد کیلوگرم. قیمت هر گرم: مقدار مبنا ۱ و واحد گرم. حداقل مقدار و گام فروش ۱ گرم؛ کسری از گرم پذیرفته نیست.</p><button>تعریف کالا</button></form></section>
+<section class="card"><h2>ثبت موجودی افتتاحیه آزمایشی</h2><p>فقط یک بار و پیش از گردش کالا. مقدار را دستی با واحد انتخابی وارد کنید؛ حداقل ۱ گرم یا ۱ عدد. ارزش کل به مقدار ورودی مربوط است؛ ارزش کل به تومان.</p>
 <form action="/opening" method="post"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="key" value="{{ command_key }}">
-<label>کالا<select name="product_id" required>{% for p in products %}<option value="{{ p.id }}">{{ p.name }} ({{ 'میلی‌گرم' if p.kind == 'weight' else 'عدد' }})</option>{% endfor %}</select></label>
-<label>مقدار پایه<input name="qty" required inputmode="numeric"></label><label>ارزش کل (تومان)<input name="value" required inputmode="decimal"></label>
+<label>کالا<select name="product_id" required>{% for p in products %}<option value="{{ p.id }}">{{ p.name }} ({{ 'گرم' if p.kind == 'weight' else 'عدد' }})</option>{% endfor %}</select></label>
+<label>مقدار موجودی<input name="qty" required inputmode="decimal"></label><label>ارزش کل (تومان)<input name="value" required inputmode="decimal"></label>
+<label>واحد مقدار موجودی<select name="qty_unit" required><option value="">انتخاب واحد متناسب با کالا</option><option value="g">گرم (g)</option><option value="kg">کیلوگرم (kg)</option><option value="count">عدد</option></select></label>
+<p class="hint">۰٫۲۵۰ کیلوگرم = ۲۵۰ گرم. مقدار کمتر از ۱ گرم یا کسری از گرم رد می‌شود. نیازی به ترازو متصل نیست.</p>
 <label>علت<input name="reason" required maxlength="500"></label><button>ثبت افتتاحیه</button></form></section></div>
 <section class="card"><h2>داده و پشتیبان</h2><p>پوشه داده: <bdi>{{ data_dir }}</bdi></p><p>پشتیبان روی همان دیسک است. بازیابی عملیاتی هنوز فعال نیست؛ نگهداری روی دیسک خارجی لازم خواهد بود.</p>
 <form action="/backup" method="post"><input type="hidden" name="csrf" value="{{ csrf }}"><button>ساخت پشتیبان بررسی‌شده</button></form></section>

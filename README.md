@@ -34,14 +34,20 @@ Without an override the data folder is `%LOCALAPPDATA%/StoreSale` on Windows and
 Cloud data resides in ignored `.local/data`; virtualenv, database and generated
 backups are not source files.
 
-Money is stored in integer rial and shown as toman; quantities are integer milligrams
-or counts. The prototype product form explicitly asks for base units. The sales
+Money is stored in integer rial and shown as toman; quantities are integer whole grams
+or counts (minimum positive quantity: 1 gram or 1 item). Weight input and inventory display offer explicit g/kg selection; 0.250 kg stores
+as 250 g. Product price bases have their own unit selector (1 kg or 1 g), and sales
+steps remain whole grams. Counted products use items only. Manual entry needs no
+connected hardware. The sales
 valuation service is internal and tested; **there is no checkout route** until money
 and party ledgers can be posted atomically with inventory.
 
-The first migration is version `0001`. Only this schema is supported. Do not edit
-applied migrations or downgrade; add a new migration with a tested backup/upgrade
-path when extending the schema. Make a verified snapshot before future migrations.
+The current schema is `0002` (whole grams); `0001` stored milligrams. Never relabel
+old values. The upgrade creates and verifies a legacy snapshot and converts all
+weight quantities, price bases and historical snapshots only when exactly divisible
+by 1,000. Any fractional-gram value blocks the entire upgrade without rounding or
+changing financial data. See [migration and recovery guidance](docs/GRAM_MIGRATION.md)
+before upgrading existing data. Do not edit applied migrations or downgrade.
 
 ## Backup
 

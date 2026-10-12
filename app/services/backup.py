@@ -8,7 +8,7 @@ from app import __version__
 from app.domain.clock import now_utc
 
 
-def validate_snapshot(path, expected_schema="0001"):
+def validate_snapshot(path, expected_schema="0002"):
     with sqlite3.connect(Path(path).resolve().as_uri() + "?mode=ro", uri=True) as c:
         if c.execute("PRAGMA integrity_check").fetchall() != [("ok",)]:
             raise ValueError("Backup integrity check failed")
@@ -20,7 +20,7 @@ def validate_snapshot(path, expected_schema="0001"):
         return row[0]
 
 
-def create_backup(db_path, destination):
+def create_backup(db_path, destination, *, expected_schema="0002"):
     destination = Path(destination)
     destination.mkdir(parents=True, exist_ok=True, mode=0o700)
     at = now_utc()
@@ -32,7 +32,7 @@ def create_backup(db_path, destination):
         with sqlite3.connect(Path(db_path).resolve().as_uri() + "?mode=ro", uri=True) as source:
             with sqlite3.connect(tmp) as target:
                 source.backup(target)
-        schema = validate_snapshot(tmp)
+        schema = validate_snapshot(tmp, expected_schema)
         digest = hashlib.sha256(tmp.read_bytes()).hexdigest()
         size = tmp.stat().st_size
         tmp.replace(final)
@@ -44,11 +44,11 @@ def create_backup(db_path, destination):
         raise
 
 
-def verify_backup(path):
+def verify_backup(path, *, expected_schema="0002"):
     path = Path(path)
     info = json.loads(path.with_suffix(".json").read_text(encoding="utf-8"))
     if info["file"] != path.name or info["size_bytes"] != path.stat().st_size:
         raise ValueError("Backup manifest mismatch")
     if info["sha256"] != hashlib.sha256(path.read_bytes()).hexdigest():
         raise ValueError("Backup checksum mismatch")
-    return validate_snapshot(path)
+    return validate_snapshot(path, expected_schema)

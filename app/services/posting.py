@@ -37,15 +37,23 @@ def post_stock(engine, *, key: str, actor_id: int, kind: str, product_id: int,
         raise DomainError("علت لازم است")
     payload = dict(actor_id=actor_id, kind=kind, product_id=product_id, qty=qty,
                    reason=reason, value=value, price_version=price_version, discount=discount)
+    payload["quantity_version"] = 2
     digest = hashlib.sha256(json.dumps(payload, sort_keys=True).encode()).hexdigest()
     with write_transaction(engine) as c:
         require_manager(c, actor_id)
+        product = c.execute(select(m.products).where(m.products.c.id == product_id)).mappings().first()
         previous = c.execute(select(m.idempotency).where(m.idempotency.c.key == key)).mappings().first()
         if previous:
-            if previous["payload_hash"] != digest:
+            comparison = digest
+            if previous["quantity_version"] == 1:
+                # Retain original hashes; reconstruct legacy units for exact retries.
+                legacy = {k: v for k, v in payload.items() if k != "quantity_version"}
+                if product and product["kind"] == "weight":
+                    legacy["qty"] *= 1000
+                comparison = hashlib.sha256(json.dumps(legacy, sort_keys=True).encode()).hexdigest()
+            if previous["payload_hash"] != comparison:
                 raise Conflict("این کلید قبلاً با اطلاعات متفاوت ثبت شده است")
             return previous["result_id"]
-        product = c.execute(select(m.products).where(m.products.c.id == product_id)).mappings().first()
         if not product or not product["active"]:
             raise DomainError("کالا فعال نیست")
         if qty % product["quantity_step"]:
@@ -71,7 +79,8 @@ def post_stock(engine, *, key: str, actor_id: int, kind: str, product_id: int,
         at = now_utc()
         doc_id, line_id = str(uuid4()), str(uuid4())
         snapshot = {"name": product["name"], "kind": product["kind"],
-                    "quantity_step": product["quantity_step"], "discount_rial": discount}
+                    "quantity_step": product["quantity_step"], "discount_rial": discount,
+                    "quantity_unit": "g" if product["kind"] == "weight" else "count"}
         if price:
             snapshot.update(unit_price_rial=price["unit_price_rial"], basis_qty=price["basis_qty"],
                             price_version=price["version"])
@@ -87,5 +96,5 @@ def post_stock(engine, *, key: str, actor_id: int, kind: str, product_id: int,
                   .values(qty_base=new.qty, value_rial=new.value, version=balance["version"] + 1))
         c.execute(insert(m.audit).values(actor_id=actor_id, action=kind, reference=doc_id,
                   reason=reason, created_at=at.isoformat()))
-        c.execute(insert(m.idempotency).values(key=key, payload_hash=digest, result_id=doc_id))
+        c.execute(insert(m.idempotency).values(key=key, payload_hash=digest, result_id=doc_id, quantity_version=2))
     return doc_id
