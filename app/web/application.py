@@ -98,6 +98,10 @@ def create_app(settings: Settings | None = None):
     async def domain_error(request, exc):
         return page(request, "error.html", message=str(exc), code=409 if isinstance(exc, Conflict) else 400)
 
+    @app.exception_handler(PermissionError)
+    async def forbidden(request, exc):
+        return page(request, "error.html", message=str(exc), code=403)
+
     @app.exception_handler(IntegrityError)
     async def integrity_error(request, exc):
         response = page(request, "error.html", message="اطلاعات تکراری یا ناسازگار است؛ هیچ تغییری ثبت نشد", code=409)
@@ -216,5 +220,6 @@ def create_app(settings: Settings | None = None):
             raise HTTPException(503, "پشتیبان ناموفق بود؛ فضای دیسک و دسترسی پوشه را بررسی کنید") from None
         return page(request, "message.html", message=f"پشتیبان سازگار و بررسی‌شده ایجاد شد: {snapshot.name}")
 
-    # There is deliberately no /sale endpoint before payment/party ledgers exist.
+    from app.web.commerce import register
+    register(app, engine, user, form, page, number)
     return app

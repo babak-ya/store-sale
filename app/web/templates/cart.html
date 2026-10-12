@@ -1,0 +1,24 @@
+{% extends 'base.html' %}{% block content %}
+{% set sale = cart.kind=='sale' %}
+{% macro hidden() %}<input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="version" value="{{ cart.version }}">{% endmacro %}
+{% macro units(kind,name) %}<select name="{{ name }}" aria-label="{{ 'واحد مقدار' if name=='unit' else 'واحد مبنای قیمت' }}">{% if kind=='weight' %}<option value="g">گرم (g)</option><option value="kg">کیلوگرم (kg)</option>{% else %}<option value="count">عدد</option>{% endif %}</select>{% endmacro %}
+<h1>{{ 'سبد فروش' if sale else 'خرید و افزایش موجودی' }}</h1>
+<section class="card"><h2>بازبینی سبد</h2>
+<p class="hint">مقادیر وزنی این جدول به گرم هستند. برای تغییر مقدار، همان کالا را در پایین دوباره انتخاب کنید؛ مقدار قبلی جایگزین می‌شود.</p>
+<table><thead><tr><th>کالا</th><th>مقدار</th><th>قیمت و مبنا (تومان)</th><th>مبلغ (تومان)</th><th>عملیات</th></tr></thead><tbody>
+{% for item in items %}<tr><td>{{ item.name }}</td><td>{{ item.qty }} {{ 'گرم' if item.kind=='weight' else 'عدد' }}</td><td>{{ (item.unit_price_rial if sale else item.unit_cost_rial)|toman }} / {{ item.basis_qty }} {{ 'گرم' if item.kind=='weight' else 'عدد' }}</td><td>{{ item.net|toman }}</td><td><form method="post" action="/carts/{{ cart.id }}/edit">{{ hidden() }}<input type="hidden" name="action" value="remove"><input type="hidden" name="product_id" value="{{ item.product_id }}"><button class="secondary">حذف {{ item.name }}</button></form></td></tr>{% else %}<tr><td colspan="5">سبد خالی است.</td></tr>{% endfor %}
+</tbody></table><h2>جمع: {{ total|toman }} تومان <small>({{ total }} ریال)</small></h2>
+{% if sale and items %}<form method="post" action="/carts/{{ cart.id }}/edit">{{ hidden() }}<input type="hidden" name="action" value="refresh"><button class="secondary">تازه‌سازی قیمت و موجودی برای بازبینی</button></form>{% endif %}
+{% if items %}<form method="post" action="/carts/{{ cart.id }}/post">{{ hidden() }}
+{% if not sale %}<label>تأمین‌کننده<select name="supplier_id" required>{% for supplier in suppliers %}<option value="{{ supplier.id }}">{{ supplier.name }}</option>{% endfor %}</select></label><p><a href="/suppliers">افزودن تأمین‌کننده</a> (سبد شما ذخیره می‌ماند)</p><label>پرداخت فعلی (تومان؛ صفر = نسیه)<input name="paid" value="0" inputmode="decimal" required></label>{% endif %}
+<label>روش {{ 'دریافت' if sale else 'پرداخت' }}<select name="method"><option value="cash">نقدی</option>{% if sale %}<option value="manual_card">کارت خارج از برنامه — تأیید دستی</option>{% else %}<option value="external_transfer">انتقال خارج از برنامه — تأیید دستی</option>{% endif %}</select></label>
+{% if sale %}<label>وجه نقد تحویلی (تومان؛ خالی = مبلغ دقیق)<input name="tendered" inputmode="decimal"></label>{% else %}<p>وجه نقد ثبت‌شده قابل پرداخت: {{ cash|toman }} تومان</p>{% endif %}
+<p class="notice">این برنامه کارت بانکی را شارژ نمی‌کند و انتقال وجه انجام نمی‌دهد. پرداخت خارجی را تنها پس از مشاهده موفقیت واقعی آن تأیید کنید. اطلاعات کارت را وارد نکنید.</p>
+<label class="check"><input type="checkbox" name="confirmed" value="yes"> انجام واقعی پرداخت خارج از برنامه را تأیید می‌کنم</label>
+<button>{{ 'ثبت قطعی فروش و رسید' if sale else 'ثبت قطعی خرید' }}</button><p class="hint">ثبت قطعی قابل ویرایش نیست. در صورت قطع پاسخ، ارسال مجدد همین فرم دوباره ثبت نمی‌شود؛ پیش از شروع فاکتور تازه سوابق را بررسی کنید.</p>
+</form>{% endif %}</section>
+<section class="card"><h2>انتخاب کالا</h2><form method="get"><label>جستجوی نام یا کد کالا<input name="q" value="{{ q }}"></label><button>جستجو</button></form><p class="hint">حداکثر ۵۰ نتیجه؛ برای یافتن کالا جستجو را دقیق‌تر کنید.</p>
+<div class="grid">{% for p in products %}<article class="card"><h3>{{ p.name }}</h3><p>کد: {{ p.sku }} · موجودی: {{ p.qty_base }} {{ 'گرم' if p.kind=='weight' else 'عدد' }}</p><p>قیمت فروش: {{ p.price.unit_price_rial|toman }} تومان / {{ p.price.basis_qty }} {{ 'گرم' if p.kind=='weight' else 'عدد' }}</p>
+<form method="post" action="/carts/{{ cart.id }}/edit">{{ hidden() }}<input type="hidden" name="action" value="set"><input type="hidden" name="product_id" value="{{ p.id }}"><label>مقدار {{ p.name }}<input name="qty" inputmode="decimal" required></label>{{ units(p.kind,'unit') }}
+{% if not sale %}<label>بهای خرید (تومان)<input name="unit_cost" inputmode="decimal" required></label><label>مبنای بها<input name="basis" value="1" inputmode="decimal" required></label>{{ units(p.kind,'basis_unit') }}{% endif %}<button>انتخاب {{ p.name }}</button></form></article>{% else %}<p>کالایی پیدا نشد.</p>{% endfor %}</div></section>
+{% endblock %}

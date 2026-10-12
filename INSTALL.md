@@ -4,9 +4,11 @@ Use this guide for the current source-code version. For Persian instructions, se
 [INSTALL_FA.md](INSTALL_FA.md).
 
 **This is a prototype for test data.** Login, products, opening stock and backups are
-available; checkout, credit and returns are still under development. See
+available, together with cashier checkout, receipts and supplier purchasing/payment.
+Customer credit and returns remain later work. See [commerce notes](docs/COMMERCE.md) and
 [STATUS.md](STATUS.md). There is no standalone Windows installer yet. Automated
-validation was performed on Linux; a clean Windows installation has not been certified.
+validation includes Windows/Python 3.12 and headless Edge workflows; a clean Windows
+installation has not been certified.
 
 ## 1. What you need
 
@@ -129,7 +131,8 @@ for protection against failure of the computer's disk. Do not copy just the live
 
 For source updates, create a backup, stop the app, then download the latest `main`
 ZIP into a **new** folder. Repeat installation there using the same data folder.
-Read [the whole-gram upgrade guide](docs/GRAM_MIGRATION.md) first: schema `0002`
+Read [the current schema 0003 notes](docs/COMMERCE.md) and
+[the whole-gram upgrade guide](docs/GRAM_MIGRATION.md) first: the preserved `0002` step
 requires exact conversion of all legacy milligram quantities and makes a verified
 backup before conversion. Fractional-gram history blocks the upgrade. Do not delete
 the database, round quantities, or stamp a schema version to bypass an error.

@@ -1,14 +1,15 @@
 # StoreSale
 
-Offline Persian grocery/spice store software. **Phase-zero prototype: synthetic data only.**
+Offline Persian grocery/spice store software. **Cashier checkout and purchasing prototype: synthetic data only.**
 First-time users: follow [the installation guide](INSTALL.md) or
 [راهنمای نصب فارسی](INSTALL_FA.md).
 Reviewed specification: [Bobzie's plan](docs/PLAN_FA.txt). See [review](docs/PLAN_REVIEW.md),
 [status](STATUS.md), and [Persian operating instructions](README_FA.md).
 
 Target deployment assumes **Windows, one computer, one store, one inventory**.
-Development is currently validated on Linux with Python 3.12. Windows packaging and
-physical hardware have not been validated.
+The gram/kg foundation was validated on Linux; checkout and purchasing have been
+validated locally on Windows/Python 3.12, including headless Edge form workflows.
+Windows packaging and physical hardware have not been validated.
 
 ## Development
 
@@ -38,16 +39,18 @@ Money is stored in integer rial and shown as toman; quantities are integer whole
 or counts (minimum positive quantity: 1 gram or 1 item). Weight input and inventory display offer explicit g/kg selection; 0.250 kg stores
 as 250 g. Product price bases have their own unit selector (1 kg or 1 g), and sales
 steps remain whole grams. Counted products use items only. Manual entry needs no
-connected hardware. The sales
-valuation service is internal and tested; **there is no checkout route** until money
-and party ledgers can be posted atomically with inventory.
+connected hardware. **Cashier checkout, payments, printable/reprintable receipts and
+searchable sales history are implemented**, together with supplier purchases,
+restocking and invoice payments. See [workflow, accounting and limits](docs/COMMERCE.md).
+All effects post atomically with payload-checked retry protection.
 
-The current schema is `0002` (whole grams); `0001` stored milligrams. Never relabel
+The current schema is `0003` (commerce); `0002` introduced whole grams and `0001` stored milligrams. Never relabel
 old values. The upgrade creates and verifies a legacy snapshot and converts all
 weight quantities, price bases and historical snapshots only when exactly divisible
 by 1,000. Any fractional-gram value blocks the entire upgrade without rounding or
 changing financial data. See [migration and recovery guidance](docs/GRAM_MIGRATION.md)
-before upgrading existing data. Do not edit applied migrations or downgrade.
+before upgrading existing data, and [schema 0003 notes](docs/COMMERCE.md).
+Do not edit applied migrations or downgrade.
 
 ## Backup
 

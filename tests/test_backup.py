@@ -12,11 +12,11 @@ def test_backup_and_copy_restore(settings, engine, manager, tmp_path):
     post_stock(engine, actor_id=manager, key="synthetic-opening-key", kind="opening", product_id=pid,
                qty=3, value=100, reason="synthetic")
     snapshot = create_backup(settings.db_path, settings.data_dir / "backups")
-    assert verify_backup(snapshot) == "0002"
+    assert verify_backup(snapshot) == "0003"
     restored = tmp_path / "restore-test.sqlite3"
     with sqlite3.connect(snapshot) as source, sqlite3.connect(restored) as destination:
         source.backup(destination)
-    assert validate_snapshot(restored) == "0002"
+    assert validate_snapshot(restored) == "0003"
     with sqlite3.connect(restored) as c:
         assert c.execute("SELECT qty_base,value_rial FROM stock_balances").fetchone() == (3, 100)
         assert c.execute("SELECT SUM(qty_delta),SUM(value_delta) FROM stock_movements").fetchone() == (3, 100)

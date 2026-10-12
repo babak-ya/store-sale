@@ -1,88 +1,76 @@
 # Status — 2026-10-12
 
-**Runnable phase-zero foundation; incomplete prototype. No real store data.**
+**Local milestones 1 and 2 implemented for review; synthetic-data verification only.**
 
-## Implemented and verified on Linux / Python 3.12
+Base: verified gram/kg commit `9303b45c10011b4cb280ecddb2df2f8cdf276603`.
+Local branch: `feat/cashier-purchases-local`. No milestone commits pushed, merged,
+published or deployed. Existing live shop records and the running shop process
+were not used for testing or migration.
 
-- FastAPI/Jinja Persian RTL setup/login/catalog/opening-stock/backup pages; local CSS.
-- Manager creates their own credentials; Argon2id, hashed sessions, expiry, logout and
-  inactive-user denial. CSRF, strict Origin/Host, local CSP, escaping, server-side roles.
-- File-backed SQLite, SQLAlchemy, Alembic 0002; foreign keys, WAL, FULL sync, busy timeout.
-- Explicit BEGIN IMMEDIATE, all-or-nothing posting, payload-checked idempotency,
-  immutable ledger triggers, protected product unit after movement.
-- Exact money/quantity/step/overflow checks, weighted-average cost snapshots, cumulative
-  return rounding helpers. Initial stock form; internal sale valuation service only.
-- SQLite Backup API snapshots with schema/integrity/FK validation and SHA-256 manifest.
-- Single-process launcher; second invocation checks and uses the running app.
-- Baseline at `123a923` (installation guides), matching remote `main` on 2026-10-12:
-  **41 tests passed, 1 warning in 11.99s**, freshly installed on Linux/Python 3.12.14.
-  Existing test coverage: numerical examples, two connections competing for final stock,
-  duplicate commands, stale prices, transaction failure, database lock, abrupt process
-  exits before/after commit, auth/role/CSRF/escaping, backup during posting, corrupt and
-  unsupported snapshots, restoration to a separate copy, real HTTP launcher checks.
-- Browser form-origin correction: use `Referrer-Policy: same-origin`, so local HTML
-  POSTs keep their Origin header. Explicit null/external/wrong-port origins still fail.
-  Prior work recorded a headless Chromium 154 Linux reproduction and setup check.
-  This task reran HTTP/security tests; it did not repeat that browser session.
-- `pip check` passed. Install and migrate steps run in `/workspace/store-sale`.
+## Implemented
 
-## Whole-gram change prepared for review
+- Persian RTL, local FastAPI/Jinja/CSS, authentication, CSRF/Origin/Host protection,
+  manager/cashier permissions and disabled-user denial.
+- Whole-gram g/kg selection, integer counts and rial money, explicit toman
+  conversion and quantity-based prices; no browser-float accounting.
+- Persistent user-owned carts, product name/SKU search, add/replace/remove lines,
+  deliberate stale-state refresh and atomic checkout with exact cash change or
+  manually confirmed external card recording. No hardware or internet required.
+- Sequential receipts, immutable product/price/cost snapshots, browser printing,
+  reprinting and paginated searchable sale history. Reprints have no ledger effects.
+- Suppliers, multi-line purchase carts, cost bases, paid/partial/unpaid purchases,
+  invoice-specific supplier payments and outstanding balances.
+- Inventory moving weighted-average valuation. Purchases increase inventory;
+  supplier payments decrease AP. Neither is an operating expense.
+- Atomic posting and payload-checked idempotency for checkout, purchase and supplier
+  payments; serialized writers; stale prices/stock rejected; no negative inventory,
+  supplier overpayment or spending more than recorded available cash.
+- Schema 0003, frozen migration definitions, validated pre-upgrade backups,
+  transactional header rebuild and new immutable ledgers. Existing 0001/0002
+  history, IDs and command hashes survive supported upgrades.
+- Windows backup fix: explicitly close SQLite handles before renaming snapshots.
 
-- Integer grams, minimum 1 g; exact g/kg conversion and explicit quantity and price
-  unit selectors. Inventory display can use g or kg. Counts stay separate integers.
-- Schema 0002 converts all legacy weighted quantities, steps, price bases and JSON
-  snapshots exactly; fractional history blocks the entire upgrade with diagnostics.
-- Verified pre-upgrade snapshots, transactional conversion/guard restoration,
-  unchanged integer-rial values and original hashes, compatible legacy retries.
-- Runtime rejects old schema rather than displaying milligrams as grams. Hardware
-  weight contract now names grams and forbids implicit fractional-gram rounding.
-- Final checks on Linux/Python 3.12.14: `.venv/bin/pytest -q` → **57 passed,
-  1 warning in 15.38s**; `.venv/bin/python -m pip check` → **No broken requirements
-  found**; `git diff --check` → clean. The warning is the existing Starlette/httpx
-  TestClient deprecation. Tests use temporary synthetic databases only.
-- New coverage: exact migration, 10 incompatible history cases, legacy retries,
-  guard preservation, injected late rollback, backup-failure rollback, old-schema
-  rejection, exact kg boundaries, manual unit selection/display and unit mismatch.
-- See [migration/recovery guidance](docs/GRAM_MIGRATION.md). No production data
-  touched. This change is submitted for review; no merge or deployment performed.
+## Verification
 
-Manual product/opening-stock entry needs no scanner, scale or payment terminal.
-**A complete manual sale cannot yet be issued:** checkout, payment recording and
-printable sale receipts are not implemented. The internal valuation service alone
-is not a completed checkout. When built, manual checkout need not require hardware.
+- Final Windows suite: **85 passed, 1 existing warning in 24.86s**.
+  `pip check`: no broken requirements. `git diff --check`: clean.
 
-## Still required
+- The gram/kg baseline passed all 57 tests locally after the Windows backup fix.
+- New tests cover accounting fixtures, simultaneous/repeated checkout, insufficient
+  stock, stale state, cash/manual-card validation, immutable receipts and reprints,
+  unpaid/part-paid/fully-paid purchases, supplier payment races, roles, escaping,
+  CSRF, injected write rollback/retry, and populated migration rollback/retry.
+- Actual headless Microsoft Edge UI smoke passed on Windows using external bundled
+  Playwright, with a fresh temporary database: real form entry, mixed weight/count
+  cart, fractional-count rejection, cash with replayed POST, insufficient stock,
+  manual-card confirmation, history search, print CSS, receipt reopen, part-paid
+  purchase and supplier settlement. No external browser requests or page errors.
+- Browser ledger evidence: 2 sales, 1 purchase, 1 supplier payment; 1 cash receipt,
+  1 manual-card receipt and 2 external supplier payments; supplier balance 0;
+  inventory `(9500 g, 1150000 rial)` and `(2 items, 1000 rial)`; SQLite integrity OK.
+- Existing Starlette/httpx TestClient deprecation warning remains.
 
-- Finish phase zero: persisted settings, rotated sanitized logs, fuller auditing,
-  normalized operational error/retry UI, startup recovery diagnostics.
-- Phase one: complete products/barcodes/prices UI, parties, purchase posting, all money
-  ledgers, cash/manual-card checkout with manual weights, receipts and sales/profit reports.
-- Phase two: AR/AP allocations, credit, both return workflows, expenses/owner accounts,
-  transfers, adjustments, expiry review, day closing, user administration, backup
-  records/retention/external destinations and production restore.
-- Full acceptance/invariant suite across those ledgers; actual disk-full behavior,
-  printer failures, closed-day checks, unknown payment UI and operational recovery
-  after OS/power failure during an upgrade. Exception rollback is tested.
-- Licensed bundled Persian font, Jalali formatting throughout, cashier documentation,
-  Windows onedir package/build script and clean offline Windows machine test.
-- Hardware interfaces have no device integration; unavailable terminal never confirms
-  payment. No card data is recorded.
+See [operating notes and test commands](docs/COMMERCE.md) for precise behavior.
 
-## Known limitations
+## Later work and limits
 
-Runtime and ordinary backups require schema 0002. Schema 0001 has the exact
-upgrade path described above; legacy archive verification requires an explicit
-expected schema. Other snapshot versions remain unsupported. No operational restore endpoint is present. Copy-restoration tests do not
-prove the eventual stop/swap/restart procedure. Current schema contains a deliberate
-subset of the plan; future migrations must preserve existing ledgers. Initial stock
-entry is not an inventory adjustment feature. There is no sales route, receipt,
-payment, debt or profit dashboard yet. Product creation has no command idempotency
-record; a duplicate SKU is rejected without a second product.
+- No bank charging, terminal/scale/scanner integration or card details. External
+  payment confirmation is a user assertion. Physical printing remains untested;
+  browser print layout has been exercised.
+- Minimal invoice-specific AP only. No customer credit, returns, cross-invoice
+  allocation, advance payments, expenses, full money-account reconciliation,
+  opening cash/owner contribution, day close or profit/reporting suite.
+- Cash supplier payments can use recorded cash sale proceeds. Other supplier
+  payments must be recorded as confirmed external transfers after they occur.
+- Product/price administration, barcode aliases, persistent store settings,
+  complete audit/log operations, user-administration UI, expiry management,
+  Jalali formatting throughout and bundled font remain future work.
+- No production restore, Windows installer/package, clean offline-machine pilot,
+  disk-full or abrupt OS/power-failure validation. No production-readiness claim.
+- Legacy internal sale valuation commands remain for compatibility and fixtures;
+  they are excluded from paid checkout history. Opening inventory remains a
+  one-time initial-stock operation, not an inventory-adjustment workflow.
 
-One dependency warning: Starlette currently deprecates its httpx TestClient transport;
-tests still execute successfully. Direct official-documentation URL checks from this
-cloud runtime were unavailable; package metadata came from PyPI and compatibility
-was validated by installation and the executed tests.
-
-Store readiness, Windows compatibility, physical printing, banking integration,
-and production restoration in a fresh cloud task are **not** claimed.
+Future migrations must preserve existing ledgers. Normal runtime and backups now
+require 0003; archive verification supports an explicit expected schema. Do not
+downgrade, stamp versions or test migrations on live records.

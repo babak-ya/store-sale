@@ -1,4 +1,5 @@
 """Consistent local snapshots. Production restore is deliberately not exposed yet."""
+from contextlib import closing
 import hashlib
 import json
 import sqlite3
@@ -8,8 +9,8 @@ from app import __version__
 from app.domain.clock import now_utc
 
 
-def validate_snapshot(path, expected_schema="0002"):
-    with sqlite3.connect(Path(path).resolve().as_uri() + "?mode=ro", uri=True) as c:
+def validate_snapshot(path, expected_schema="0003"):
+    with closing(sqlite3.connect(Path(path).resolve().as_uri() + "?mode=ro", uri=True)) as c:
         if c.execute("PRAGMA integrity_check").fetchall() != [("ok",)]:
             raise ValueError("Backup integrity check failed")
         if c.execute("PRAGMA foreign_key_check").fetchall():
@@ -20,7 +21,7 @@ def validate_snapshot(path, expected_schema="0002"):
         return row[0]
 
 
-def create_backup(db_path, destination, *, expected_schema="0002"):
+def create_backup(db_path, destination, *, expected_schema="0003"):
     destination = Path(destination)
     destination.mkdir(parents=True, exist_ok=True, mode=0o700)
     at = now_utc()
@@ -29,8 +30,8 @@ def create_backup(db_path, destination, *, expected_schema="0002"):
     final = destination / (name + ".sqlite3")
     manifest = destination / (name + ".json")
     try:
-        with sqlite3.connect(Path(db_path).resolve().as_uri() + "?mode=ro", uri=True) as source:
-            with sqlite3.connect(tmp) as target:
+        with closing(sqlite3.connect(Path(db_path).resolve().as_uri() + "?mode=ro", uri=True)) as source:
+            with closing(sqlite3.connect(tmp)) as target:
                 source.backup(target)
         schema = validate_snapshot(tmp, expected_schema)
         digest = hashlib.sha256(tmp.read_bytes()).hexdigest()
@@ -44,7 +45,7 @@ def create_backup(db_path, destination, *, expected_schema="0002"):
         raise
 
 
-def verify_backup(path, *, expected_schema="0002"):
+def verify_backup(path, *, expected_schema="0003"):
     path = Path(path)
     info = json.loads(path.with_suffix(".json").read_text(encoding="utf-8"))
     if info["file"] != path.name or info["size_bytes"] != path.stat().st_size:

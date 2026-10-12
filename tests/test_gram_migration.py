@@ -53,7 +53,7 @@ def test_exact_upgrade_preserves_money_history_retries_and_backup(legacy):
     original = dump(legacy)
     upgrade()
     with sqlite3.connect(legacy) as c:
-        assert c.execute("SELECT version_num FROM alembic_version").fetchone() == ('0002',)
+        assert c.execute("SELECT version_num FROM alembic_version").fetchone() == ('0003',)
         assert c.execute("SELECT quantity_step FROM products ORDER BY id").fetchall() == [(1,), (1,)]
         assert c.execute("SELECT basis_qty,unit_price_rial FROM prices").fetchall() == [(1,150000), (1,150000)]
         assert c.execute("SELECT qty_base,value_rial FROM stock_balances").fetchall() == [(7,700000), (7,700000)]
@@ -120,7 +120,7 @@ def test_inexact_history_blocks_without_changing_any_data(legacy, table, column,
 
 
 def test_legacy_database_cannot_be_opened_as_grams(legacy):
-    with pytest.raises(RuntimeError, match='Schema 0002'):
+    with pytest.raises(RuntimeError, match='Schema 0003'):
         create_app(Settings.from_env())
 
 

@@ -1,0 +1,5 @@
+{% extends 'base.html' %}{% block content %}
+<h1>صندوق فروش</h1><p>انتخاب کالا، ورود دستی مقدار و ثبت پرداخت؛ بدون نیاز به دستگاه یا اینترنت.</p>
+<form method="post" action="/carts"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="kind" value="sale"><button>فروش جدید</button></form>
+<section class="card"><h2>سبدهای باز شما</h2>{% for cart in carts %}<p><a href="/carts/{{ cart.id }}">{{ 'فروش' if cart.kind=='sale' else 'خرید' }} · {{ cart.id[:8] }}</a></p>{% else %}<p>سبد بازی ندارید.</p>{% endfor %}</section>
+{% endblock %}

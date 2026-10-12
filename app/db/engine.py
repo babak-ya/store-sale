@@ -28,8 +28,8 @@ def make_engine(path):
 
 
 def require_current_schema(connection):
-    if connection.exec_driver_sql("SELECT version_num FROM alembic_version").scalar() != "0002":
-        raise RuntimeError("Schema 0002 (whole grams) required; see docs/GRAM_MIGRATION.md")
+    if connection.exec_driver_sql("SELECT version_num FROM alembic_version").scalar() != "0003":
+        raise RuntimeError("Schema 0003 required; see docs/COMMERCE.md")
 
 
 @contextmanager
